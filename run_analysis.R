@@ -15,18 +15,6 @@ train_set <- read.table("./UCI HAR Dataset/test/X_test.txt",header=FALSE,sep = "
 
 variable_names <- read.table("./UCI HAR Dataset/features.txt", header = FALSE,sep="")
 
-## Appropriately label the data set with descriptive variable names. 
-names(test_activity)[1] <- "activity"
-names(train_activity)[1] <- "activity"
-names(test_subject)[1] <- "subject"
-names(train_subject)[1] <- "subject"
-
-# create a new column with unique descriptive variable names for the 561 measures
-variable_names <- mutate(variable_names, V3 = paste(V1,V2, sep = "_"))
-
-names(test_set)[1:561] <- variable_names$V3
-names(train_set)[1:561] <- variable_names$V3
-
 ## merge each set with cdbind
 test_set <- cbind(test_subject,test_activity,test_set)
 train_set <- cbind(train_subject, train_activity, train_set)
@@ -34,20 +22,31 @@ train_set <- cbind(train_subject, train_activity, train_set)
 ## Merge the training and the test sets to create one data set.
 merged_sets <- rbind(train_set,test_set)
 
+## Appropriately label the data set with descriptive variable names. 
+variable_names_full <- append(c("subject","activity"),variable_names$V2)
+names(merged_sets) <- variable_names_full
+
 # Extract only the measurements on the mean and standard deviation for each measurement.
-mean_summary <- sapply(merged_sets[3:563], mean)
-standard_deviation_summary <- sapply(merged_sets[3:563], sd)
+subject <- grepl("subject", variable_names_full)
+activity <- grepl ("activity", variable_names_full)
+mean_only <-grepl("mean", variable_names_full)
+std_only <- grepl("std", variable_names_full)
+mean_std_vector <- mean_only | std_only |subject | activity
+
+mean_std_set <- merged_sets[,mean_std_vector]
+new_names <- names(mean_std_set)
+measurement_names <- new_names[3:81]
 
 ## Use descriptive activity names to name the activities in the data set
-merged_sets$activity[merged_sets$activity == 1] = "walking"
-merged_sets$activity[merged_sets$activity == 2] = "walking_upstairs"
-merged_sets$activity[merged_sets$activity == 3] = "walking_downstairs"
-merged_sets$activity[merged_sets$activity == 4] = "sitting"
-merged_sets$activity[merged_sets$activity == 5] = "standing"
-merged_sets$activity[merged_sets$activity == 6] = "laying"
+mean_std_set$activity[mean_std_set$activity == 1] = "walking"
+mean_std_set$activity[mean_std_set$activity == 2] = "walking_upstairs"
+mean_std_set$activity[mean_std_set$activity == 3] = "walking_downstairs"
+mean_std_set$activity[mean_std_set$activity == 4] = "sitting"
+mean_std_set$activity[mean_std_set$activity == 5] = "standing"
+mean_std_set$activity[mean_std_set$activity == 6] = "laying"
 
 ## Create a second, independent tidy data set with the average of each variable 
 ## for each activity and each subject.
-tidy_dataset <- merged_sets %>%
+tidy_dataset <- mean_std_set %>%
     dplyr::group_by(activity, subject)%>%
-    dplyr::summarise(across(all_of(variable_names$V3),mean))
+    dplyr::summarise(across(all_of(measurement_names),mean))
