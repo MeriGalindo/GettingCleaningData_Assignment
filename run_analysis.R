@@ -50,3 +50,6 @@ mean_std_set$activity[mean_std_set$activity == 6] = "laying"
 tidy_dataset <- mean_std_set %>%
     dplyr::group_by(activity, subject)%>%
     dplyr::summarise(across(all_of(measurement_names),mean))
+
+## extract the data data set as a txt file created with write.table() using row.names=FALSE
+write.table(tidy_dataset, file="tidy_dataset.txt",row.names = FALSE, sep = "")
